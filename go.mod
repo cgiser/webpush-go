@@ -2,5 +2,6 @@ module github.com/SherClockHolmes/webpush-go
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	golang.org/x/crypto v0.0.0-20190131182504-b8fe1690c613
+	github.com/valyala/fasthttp v1.5.0
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 )

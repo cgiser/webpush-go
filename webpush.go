@@ -10,12 +10,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"github.com/valyala/fasthttp"
+	"golang.org/x/crypto/hkdf"
 	"io"
-	"net/http"
 	"strconv"
 	"strings"
-
-	"golang.org/x/crypto/hkdf"
 )
 
 const MaxRecordSize uint32 = 4096
@@ -31,21 +30,16 @@ var saltFunc = func() ([]byte, error) {
 	return salt, nil
 }
 
-// HTTPClient is an interface for sending the notification HTTP request / testing
-type HTTPClient interface {
-	Do(*http.Request) (*http.Response, error)
-}
-
 // Options are config and extra params needed to send a notification
 type Options struct {
-	HTTPClient      HTTPClient // Will replace with *http.Client by default if not included
-	RecordSize      uint32     // Limit the record size
-	Subscriber      string     // Sub in VAPID JWT token
-	Topic           string     // Set the Topic header to collapse a pending messages (Optional)
-	TTL             int        // Set the TTL on the endpoint POST request
-	Urgency         Urgency    // Set the Urgency header to change a message priority (Optional)
-	VAPIDPublicKey  string     // VAPID public key, passed in VAPID Authorization header
-	VAPIDPrivateKey string     // VAPID private key, used to sign VAPID JWT token
+	HTTPClient      *fasthttp.Client // Will replace with *http.Client by default if not included
+	RecordSize      uint32           // Limit the record size
+	Subscriber      string           // Sub in VAPID JWT token
+	Topic           string           // Set the Topic header to collapse a pending messages (Optional)
+	TTL             int              // Set the TTL on the endpoint POST request
+	Urgency         Urgency          // Set the Urgency header to change a message priority (Optional)
+	VAPIDPublicKey  string           // VAPID public key, passed in VAPID Authorization header
+	VAPIDPrivateKey string           // VAPID private key, used to sign VAPID JWT token
 }
 
 // Keys are the base64 encoded values from PushSubscription.getKey()
@@ -63,7 +57,7 @@ type Subscription struct {
 // SendNotification sends a push notification to a subscription's endpoint
 // Message Encryption for Web Push, and VAPID protocols.
 // FOR MORE INFORMATION SEE RFC8291: https://datatracker.ietf.org/doc/rfc8291
-func SendNotification(message []byte, s *Subscription, options *Options) (*http.Response, error) {
+func SendNotification(message []byte, s *Subscription, options *Options) (*fasthttp.Response, error) {
 	// Authentication secret (auth_secret)
 	authSecret, err := decodeSubscriptionKey(s.Keys.Auth)
 	if err != nil {
@@ -173,7 +167,21 @@ func SendNotification(message []byte, s *Subscription, options *Options) (*http.
 	recordBuf.Write(ciphertext)
 
 	// POST request
-	req, err := http.NewRequest("POST", s.Endpoint, recordBuf)
+	//req, err := http.NewRequest("POST", s.Endpoint, recordBuf)
+	req := fasthttp.AcquireRequest()
+	req.URI().Update(s.Endpoint)
+	req.Header.SetMethodBytes([]byte("POST"))
+	req.SetBody(recordBuf.Bytes())
+	//if adxName == common.ADX_xiaomi {
+	//	logging.Log.InfoBytes(appItemResponse.AppRequestBody)
+	//}
+	resp := fasthttp.AcquireResponse()
+
+	defer func() {
+		fasthttp.ReleaseRequest(req)
+		fasthttp.ReleaseResponse(resp)
+	}()
+
 	if err != nil {
 		return nil, err
 	}
@@ -206,14 +214,14 @@ func SendNotification(message []byte, s *Subscription, options *Options) (*http.
 	req.Header.Set("Authorization", vapidAuthHeader)
 
 	// Send the request
-	var client HTTPClient
+	var client *fasthttp.Client
 	if options.HTTPClient != nil {
 		client = options.HTTPClient
 	} else {
-		client = &http.Client{}
+		client = &fasthttp.Client{}
 	}
-
-	return client.Do(req)
+	err1 := client.Do(req, resp)
+	return resp, err1
 }
 
 // decodeSubscriptionKey decodes a base64 subscription key.

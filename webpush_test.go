@@ -33,7 +33,6 @@ func getStandardEncodedTestSubscription() *Subscription {
 
 func TestSendNotificationToURLEncodedSubscription(t *testing.T) {
 	resp, err := SendNotification([]byte("Test"), getURLEncodedTestSubscription(), &Options{
-		HTTPClient:      &testHTTPClient{},
 		RecordSize:      3070,
 		Subscriber:      "<EMAIL@EXAMPLE.COM>",
 		Topic:           "test_topic",
@@ -46,7 +45,7 @@ func TestSendNotificationToURLEncodedSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode() != 201 {
 		t.Fatalf(
 			"Incorreect status code, expected=%d, got=%d",
 			resp.StatusCode,
@@ -57,7 +56,6 @@ func TestSendNotificationToURLEncodedSubscription(t *testing.T) {
 
 func TestSendNotificationToStandardEncodedSubscription(t *testing.T) {
 	resp, err := SendNotification([]byte("Test"), getStandardEncodedTestSubscription(), &Options{
-		HTTPClient:      &testHTTPClient{},
 		Subscriber:      "<EMAIL@EXAMPLE.COM>",
 		Topic:           "test_topic",
 		TTL:             0,
@@ -68,7 +66,7 @@ func TestSendNotificationToStandardEncodedSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode() != 201 {
 		t.Fatalf(
 			"Incorreect status code, expected=%d, got=%d",
 			resp.StatusCode,
