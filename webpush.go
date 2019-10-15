@@ -15,7 +15,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const MaxRecordSize uint32 = 4096
@@ -220,8 +219,7 @@ func SendNotification(message []byte, s *Subscription, options *Options) (*fasth
 		client = options.HTTPClient
 	} else {
 		client = &fasthttp.Client{
-			MaxConnsPerHost: 5000,
-			ReadTimeout:     50 * time.Millisecond,
+			MaxConnsPerHost: 10000,
 		}
 	}
 	err1 := client.Do(req, resp)
