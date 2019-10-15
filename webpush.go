@@ -32,14 +32,14 @@ var saltFunc = func() ([]byte, error) {
 
 // Options are config and extra params needed to send a notification
 type Options struct {
-	HTTPClient      *fasthttp.Client // Will replace with *http.Client by default if not included
-	RecordSize      uint32           // Limit the record size
-	Subscriber      string           // Sub in VAPID JWT token
-	Topic           string           // Set the Topic header to collapse a pending messages (Optional)
-	TTL             int              // Set the TTL on the endpoint POST request
-	Urgency         Urgency          // Set the Urgency header to change a message priority (Optional)
-	VAPIDPublicKey  string           // VAPID public key, passed in VAPID Authorization header
-	VAPIDPrivateKey string           // VAPID private key, used to sign VAPID JWT token
+	HTTPClient      *fasthttp.PipelineClient // Will replace with *http.Client by default if not included
+	RecordSize      uint32                   // Limit the record size
+	Subscriber      string                   // Sub in VAPID JWT token
+	Topic           string                   // Set the Topic header to collapse a pending messages (Optional)
+	TTL             int                      // Set the TTL on the endpoint POST request
+	Urgency         Urgency                  // Set the Urgency header to change a message priority (Optional)
+	VAPIDPublicKey  string                   // VAPID public key, passed in VAPID Authorization header
+	VAPIDPrivateKey string                   // VAPID private key, used to sign VAPID JWT token
 }
 
 // Keys are the base64 encoded values from PushSubscription.getKey()
@@ -214,11 +214,13 @@ func SendNotification(message []byte, s *Subscription, options *Options) (*fasth
 	req.Header.Set("Authorization", vapidAuthHeader)
 
 	// Send the request
-	var client *fasthttp.Client
+	var client *fasthttp.PipelineClient
 	if options.HTTPClient != nil {
 		client = options.HTTPClient
 	} else {
-		client = &fasthttp.Client{}
+		client = &fasthttp.PipelineClient{
+			MaxConns: 10000,
+		}
 	}
 	err1 := client.Do(req, resp)
 	return resp, err1
