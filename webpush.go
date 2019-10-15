@@ -219,7 +219,7 @@ func SendNotification(message []byte, s *Subscription, options *Options) (*fasth
 		client = options.HTTPClient
 	} else {
 		client = &fasthttp.Client{
-			MaxConnsPerHost: 10000,
+			MaxConnsPerHost: 5000,
 		}
 	}
 	err1 := client.Do(req, resp)
